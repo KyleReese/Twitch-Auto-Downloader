@@ -7,9 +7,10 @@ import os
 import time
 import json
 import sys
+import re
 
 clientID = 'md3wyv2mh57vqm9l655vbqy0b3v8uc'
-checkInterval = 15 #keep >= 15 sec
+checkInterval = 30 #keep >= 15 sec
 
 def parse_args():
 	""" parses commandline, returns args namespace object """
@@ -19,6 +20,11 @@ def parse_args():
 	parser.add_argument('USER', nargs = 1, help = 'twitch.tv username')
 	args = parser.parse_args()
 	return args
+
+def get_valid_filename(s):
+	#borrowed from django
+	s = str(s).strip().replace(' ', '_')
+	return re.sub(r'(?u)[^-\w.]', '', s)	
 
 def check_user(user):
 		# 0: online, 1: offline, 2: not found, 3: error
@@ -39,6 +45,7 @@ def check_user(user):
 					statusCode = 2
 
 		return statusCode, response
+
 def mainloop(user):
 		while True:
 			statusCode, response = check_user(user)
@@ -54,12 +61,13 @@ def mainloop(user):
 			elif statusCode == 0:
 				print(user, "now online. Stream recording.")
 				filename = user + " - " + datetime.datetime.now().strftime("%Y-%m-%d %Hh%Mm%Ss") + " - " + (response['stream']).get("channel").get("status") + ".mp4"
-								
+				filename = get_valid_filename(filename)				
 				streamURL = "twitch.tv/" + user
 				subprocess.call(['streamlink', streamURL, 'best', '-o',  filename ])
 
 				print("Stream finished")
 				time.sleep(checkInterval)
+				
 try:
 	user = parse_args().USER[0]
 	# print(check_user(user))
